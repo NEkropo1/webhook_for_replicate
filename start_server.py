@@ -1,15 +1,23 @@
+import collections
 import logging
 import os
 
 from fastapi import FastAPI
-from pushover.pushover import Pushover
+from pyapns2.apns2.client import APNsClient
+from pyapns2.apns2.payload import Payload
+from pyapns2.apns2.credentials import TokenCredentials
 
 from clients import ClientsDB
 
-po_token = os.getenv("PUSH_APP_TOKEN")
-clients = ClientsDB()
-po = Pushover(po_token)
 app = FastAPI()
+
+auth_key_path = 'AuthKey2.pem'
+auth_key_id = os.getenv("AUTH_KEY_ID")
+team_id = os.getenv("TEAM_ID")
+token_credentials = TokenCredentials(auth_key_path=auth_key_path, auth_key_id=auth_key_id, team_id=team_id)
+client = APNsClient(credentials=token_credentials, use_sandbox=True)
+
+clients = ClientsDB()
 
 logger = logging.getLogger("webhook_logger")
 logger.setLevel(logging.INFO)
@@ -38,11 +46,12 @@ def receive_prediction_results(payload: dict):
     logger.info("Received webhook payload: %s", payload)
     _id = payload.get("id")
     if _id and _id in clients.clients:
-        user_token = clients.clients[_id]
-        po.user(user_token)
-        msg = po.msg(f"You prediction {_id} is complete!")
-        msg.set("title", "Nona me dig it all prediction completed!")
-        po.send(msg)
+        user_token = clients.clients[_id]  # Assuming this is the device token
+        payload = Payload(alert=f"Your prediction {_id} is complete!", sound="default", badge=1)
+        topic = 'com.noname.digital.development'  # Change this to your app's bundle identifier
+        Notification = collections.namedtuple('Notification', ['token', 'payload'])
+        notifications = [Notification(payload=payload, token=user_token)]
+        client.send_notification_batch(notifications=notifications, topic=topic)
     else:
         logger.warning("ID %s not found in clients DB.", _id)
     return {"message": "Webhook received successfully!"}
