@@ -46,11 +46,11 @@ def receive_prediction_results(payload: dict):
     logger.info("Received webhook payload: %s", payload)
     _id = payload.get("id")
     if _id and _id in clients.clients:
-        user_token = clients.clients[_id]  # Assuming this is the device token
+        device_token = clients.clients[_id]
         payload = Payload(alert=f"Your prediction {_id} is complete!", sound="default", badge=1)
         topic = 'com.noname.digital.development'  # Change this to your app's bundle identifier
         Notification = collections.namedtuple('Notification', ['token', 'payload'])
-        notifications = [Notification(payload=payload, token=user_token)]
+        notifications = [Notification(payload=payload, token=device_token)]
         client.send_notification_batch(notifications=notifications, topic=topic)
     else:
         logger.warning("ID %s not found in clients DB.", _id)
