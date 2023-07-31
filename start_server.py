@@ -34,7 +34,8 @@ logger.addHandler(console_handler)
 @app.post("/receive_client_ids")
 def receive_client_ids(payload: dict):
     try:
-        clients.add_clients(payload)
+        result = clients.add_clients(payload)
+        logger.info(f"Received id's: {result}")
         return {"message": "Id's received successfully!"}
     except Exception as e:
         logger.error("Failed to add clients: %s", str(e))
@@ -43,13 +44,13 @@ def receive_client_ids(payload: dict):
 
 @app.post("/receive_prediction_results")
 def receive_prediction_results(payload: dict):
-    logger.info("Received webhook payload: %s", payload)
     _id = payload.get("id")
+    logger.info("Received webhook id: %s", _id)
     if _id and _id in clients.clients:
         device_token = clients.clients[_id]
         payload = Payload(alert=f"Your prediction {_id} is complete!", sound="default", badge=1)
-        topic = 'com.noname.digital.development'  # Change this to your app's bundle identifier
-        Notification = collections.namedtuple('Notification', ['token', 'payload'])
+        topic = "com.noname.digital.development"  # Change this to your app's bundle identifier
+        Notification = collections.namedtuple("Notification", ["token", "payload"])
         notifications = [Notification(payload=payload, token=device_token)]
         client.send_notification_batch(notifications=notifications, topic=topic)
     else:
