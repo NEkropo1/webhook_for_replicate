@@ -1,21 +1,22 @@
-import collections
 import logging
 import os
+import jwt
+import time
 
 from fastapi import FastAPI
-from pyapns2.apns2.client import APNsClient
-from pyapns2.apns2.payload import Payload
-from pyapns2.apns2.credentials import TokenCredentials
+
+from client import send_notification
 
 from clients import ClientsDB
 
 app = FastAPI()
 
-auth_key_path = 'AuthKey2.pem'
+auth_key_path = 'AuthKey1.pem'
 auth_key_id = os.getenv("AUTH_KEY_ID")
 team_id = os.getenv("TEAM_ID")
-token_credentials = TokenCredentials(auth_key_path=auth_key_path, auth_key_id=auth_key_id, team_id=team_id)
-client = APNsClient(credentials=token_credentials, use_sandbox=True)
+header = {"alg": "ES256", "kid": auth_key_id}
+payload = {"iss": team_id, "iat": int(time.time())}
+auth_token = jwt.encode(payload, open(auth_key_path, "r").read(), algorithm="ES256", headers=header)
 
 clients = ClientsDB()
 
@@ -50,11 +51,9 @@ def receive_prediction_results(payload: dict):
     if _id and _id in clients.clients:
         if status == "succeeded":
             device_token = clients.clients[_id]
-            payload = Payload(alert=f"Your prediction {_id} is complete!", sound="default", badge=1)
-            topic = "com.noname.digital.development"  # Change this to your app's bundle identifier
-            Notification = collections.namedtuple("Notification", ["token", "payload"])
-            notifications = [Notification(payload=payload, token=device_token)]
-            client.send_notification_batch(notifications=notifications, topic=topic)
+            bundle_id = "com.noname.digital.development"  # Change this to your app's bundle identifier
+            send_notification(device_id=device_token, auth_token=auth_token, bundle_id=bundle_id)
+
     else:
         logger.warning("ID %s not found in clients DB.", _id)
     return {"message": "Webhook received successfully!"}
