@@ -52,7 +52,8 @@ def receive_prediction_results(payload: dict):
         if status == "succeeded":
             device_token = clients.clients[_id]
             bundle_id = "com.noname.digital.development"  # Change this to your app's bundle identifier
-            send_notification(device_id=device_token, auth_token=auth_token, bundle_id=bundle_id)
+            result = send_notification(device_id=device_token, auth_token=auth_token, bundle_id=bundle_id)
+            logger.info(f"Result of sent notification {result}")
 
     else:
         logger.warning("ID %s not found in clients DB.", _id)
