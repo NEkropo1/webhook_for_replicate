@@ -11,7 +11,7 @@ def send_notification(bundle_id, auth_token, device_id):
     }
     payload = {
         "aps": {
-            "alert": "Test for no name dig it all webhook!",
+            "alert": "Your video was successfully created.",
             "sound": "default",
             "badge": 1,
         },
